@@ -7,11 +7,6 @@ dotenv.config();
 const app = express();
 app.use(express.json());
 
-// Connect MongoDB
-mongoose.connect(process.env.MONGO_URI)
-  .then(() => console.log("MongoDB connected ✅"))
-  .catch(err => console.error("MongoDB connection error:", err));
-
 // Import routes
 const apiRoutes = require("./routes/api");
 app.use("/api", apiRoutes);
@@ -21,7 +16,23 @@ app.get("/", (req, res) => {
   res.send("Backend is running 🚀");
 });
 
-const port = process.env.PORT || 3000;
-app.listen(port, () => {
-  console.log(`Server running on port ${port}`);
+// Health check route for Render
+app.get("/healthz", (req, res) => {
+  res.status(200).send("OK");
 });
+
+const PORT = process.env.PORT || 3000;
+
+// Connect MongoDB first, then start server
+mongoose
+  .connect(process.env.MONGO_URI)
+  .then(() => {
+    console.log("MongoDB connected ✅");
+    app.listen(PORT, () => {
+      console.log(`🚀 Server running on port ${PORT}`);
+    });
+  })
+  .catch((err) => {
+    console.error("MongoDB connection error:", err);
+    process.exit(1); // Exit if DB connection fails
+  });
